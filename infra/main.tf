@@ -11,11 +11,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-variable "alert_email" {
-  type        = string
-  description = "Correo electronico para recibir alertas tempranas de CloudWatch"
-}
-
 data "aws_caller_identity" "current" {}
 
 # 1. BUCKET DE LOGS Y AUDITORIA (100% Privado + Cifrado AES256)
@@ -159,17 +154,7 @@ resource "aws_cloudtrail" "account_trail" {
   depends_on                    = [aws_s3_bucket_policy.audit_logs_policy]
 }
 
-# 4. NOTIFICACIONES Y ALARMA TEMPRANA (SNS + CloudWatch)
-resource "aws_sns_topic" "security_alerts" {
-  name = "techverde-incident-alerts"
-}
-
-resource "aws_sns_topic_subscription" "email_sub" {
-  topic_arn = aws_sns_topic.security_alerts.arn
-  protocol  = "email"
-  endpoint  = var.alert_email
-}
-
+# 4. ALARMA TEMPRANA DE INCIDENTES (Amazon CloudWatch)
 resource "aws_cloudwatch_metric_alarm" "http_4xx_alarm" {
   alarm_name          = "TechVerde-High-4xx-Errors"
   alarm_description   = "Alerta temprana cuando se detectan 3 o mas errores HTTP 4xx en 5 minutos"
@@ -181,7 +166,6 @@ resource "aws_cloudwatch_metric_alarm" "http_4xx_alarm" {
   threshold           = 3
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.security_alerts.arn]
 
   dimensions = {
     BucketName = aws_s3_bucket.web_hosting.id
