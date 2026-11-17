@@ -30,7 +30,7 @@ jobs:
           terraform validate
           echo "✅ Configuracion Terraform validada correctamente."
 
-      - name: 4. Configurar credenciales temporales AWS Academy
+      - name: 4. Configurar credenciales AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -41,6 +41,11 @@ jobs:
         working-directory: infra
         run: |
           terraform init
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          terraform import aws_s3_bucket.audit_logs "techverde-audit-logs-${ACCOUNT_ID}" || true
+          terraform import aws_s3_bucket.web_hosting "techverde-web-${ACCOUNT_ID}" || true
+          terraform import aws_cloudtrail.account_trail "techverde-security-trail" || true
+          terraform import aws_cloudwatch_metric_alarm.http_4xx_alarm "TechVerde-High-4xx-Errors" || true
           terraform apply -auto-approve
 
       - name: 6. Sincronizar sitio web en S3 y capturar salidas
