@@ -41,7 +41,7 @@ jobs:
         working-directory: infra
         run: |
           terraform init
-          terraform apply -auto-approve -var="alert_email=${{ secrets.ALERT_EMAIL }}"
+          terraform apply -auto-approve
 
       - name: 6. Sincronizar sitio web en S3 y capturar salidas
         id: tf_outputs
