@@ -17,8 +17,8 @@ else
   exit 1
 fi
 
-# Prueba 2: Validar aislamiento y privacidad del bucket de auditoria (ES-02)
-LOGS_URL="https://${LOGS_BUCKET}.s3.amazonaws.com/"
+# Prueba 2: Validar aislamiento y privacidad del bucket de auditoria en us-east-2 (ES-02)
+LOGS_URL="https://${LOGS_BUCKET}.s3.us-east-2.amazonaws.com/"
 echo "[TEST 2] Verificando bloqueo de acceso publico en bucket de logs: $LOGS_URL"
 LOGS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$LOGS_URL")
 
