@@ -1,0 +1,58 @@
+name: DevOps IaC Pipeline - TechVerde Chile
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-deploy-and-test:
+    name: Validar IaC, Desplegar en AWS y Ejecutar Pruebas
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Descargar codigo del repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Prueba Estatica - Validar sintaxis CloudFormation (cfn-lint)
+        run: |
+          pip install cfn-lint
+          cfn-lint infra/template.yaml
+          echo "✅ Plantilla CloudFormation validada sin errores de sintaxis."
+
+      - name: 3. Configurar credenciales temporales AWS Academy
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: 4. Desplegar Infraestructura como Codigo (CloudFormation)
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/template.yaml \
+            --stack-name techverde-iac-stack \
+            --parameter-overrides AlertEmail=${{ secrets.ALERT_EMAIL }} \
+            --no-fail-on-empty-changeset
+
+      - name: 5. Obtener salidas del Stack y sincronizar sitio web en S3
+        id: stack_outputs
+        run: |
+          WEBSITE_URL=$(aws cloudformation describe-stacks --stack-name techverde-iac-stack --query "Stacks[0].Outputs[?OutputKey=='WebsiteURL'].OutputValue" --output text)
+          WEB_BUCKET=$(aws cloudformation describe-stacks --stack-name techverde-iac-stack --query "Stacks[0].Outputs[?OutputKey=='WebBucketName'].OutputValue" --output text)
+          LOGS_BUCKET=$(aws cloudformation describe-stacks --stack-name techverde-iac-stack --query "Stacks[0].Outputs[?OutputKey=='LogsBucketName'].OutputValue" --output text)
+
+          echo "Subiendo archivos web a $WEB_BUCKET..."
+          aws s3 sync web/ "s3://$WEB_BUCKET/" --delete
+
+          echo "website_url=$WEBSITE_URL" >> $GITHUB_OUTPUT
+          echo "logs_bucket=$LOGS_BUCKET" >> $GITHUB_OUTPUT
+
+      - name: 6. Prueba de Integracion - Ejecutar validaciones HTTP y Seguridad
+        run: |
+          chmod +x tests/test_deployment.sh
+          ./tests/test_deployment.sh "${{ steps.stack_outputs.outputs.website_url }}" "${{ steps.stack_outputs.outputs.logs_bucket }}"
