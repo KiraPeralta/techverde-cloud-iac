@@ -27,3 +27,6 @@ Cada cambio en la rama `main` ejecuta automáticamente en **GitHub Actions**:
 1. **Validación Estática:** `terraform fmt` y `terraform validate` verifican la sintaxis antes de desplegar.
 2. **Despliegue Declarativo:** `terraform apply` aprovisiona los recursos en AWS y sincroniza el sitio web en S3.
 3. **Pruebas de Integración:** `tests/test_deployment.sh` valida que el sitio responda `200 OK` y que el bucket de logs devuelva `403 Forbidden`.
+
+   ## Reflexión Final
+La implementación de este sistema demostró cómo la Infraestructura como Código (Terraform) y la integración continua (GitHub Actions) transforman la administración Cloud en un proceso reproducible, seguro y auditable. Durante el desarrollo surgieron desafíos técnicos reales —como políticas restrictivas y límites regionales en AWS—, los cuales se resolvieron parametrizando el despliegue en `us-east-2` e incorporando importación de estado (`terraform import`) para lograr ejecuciones idempotentes. En conjunto, la combinación de monitoreo activo en CloudWatch, trazabilidad en CloudTrail y validación automatizada reduce el riesgo de errores humanos y fortalece la seguridad operativa de la plataforma.
